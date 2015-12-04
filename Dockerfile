@@ -60,13 +60,33 @@ RUN \
       --quiet \
     | tar -xz -C / \
 
+  && mkdir -p /etc/services.d/dbus/ /var/run/dbus/ \
+  && printf "%s\n" \
+    "#!/usr/bin/env sh" \
+    "set -ex" \
+    "exec /usr/bin/dbus-daemon --nofork --system" \
+    > /etc/services.d/dbus/run \
+  && chmod +x /etc/services.d/dbus/run \
+
+  && mkdir -p /etc/services.d/avahi/ \
+  && printf "%s\n" \
+    "#!/usr/bin/env sh" \
+    "set -ex" \
+    "while \`/bin/s6-svwait -u -a /var/run/s6/services/dbus\`; do" \
+    "  sleep 5" \
+    "  break" \
+    "done && exec /usr/sbin/avahi-daemon" \
+    > /etc/services.d/avahi/run \
+  && chmod +x /etc/services.d/avahi/run \
+
   && mkdir -p /etc/services.d/forked-daapd/ \
   && printf "%s\n" \
     "#!/usr/bin/env sh" \
     "set -ex" \
-    "/etc/init.d/dbus start" \
-    "/etc/init.d/avahi-daemon start" \
-    "/usr/local/sbin/forked-daapd -f" \
+    "while \`/bin/s6-svwait -u -a /var/run/s6/services/dbus /var/run/s6/services/avahi\`; do" \
+    "  sleep 5" \
+    "  break" \
+    "done && exec /usr/local/sbin/forked-daapd -f" \
     > /etc/services.d/forked-daapd/run \
   && chmod +x /etc/services.d/forked-daapd/run \
 
