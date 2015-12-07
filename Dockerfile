@@ -37,15 +37,15 @@ RUN \
 
   && cd /tmp/forked-daapd/ \
   && autoreconf -i \
-  && ./configure --prefix=/usr/local --sysconfdir=/etc --localstatedir=/home/forked-daapd --enable-itunes \
+  && ./configure --prefix=/app --sysconfdir=/home/forked-daapd --localstatedir=/home/forked-daapd --enable-itunes \
   && make \
   && make install \
   && sed \
     -e 's/^\tname.*/\tname = "Depot"/' \
-    -e 's/^\tdirectories.*/\tdirectories = \{ "\/home\/media\/Music" \}/' \
+    -e 's/^\tdirectories.*/\tdirectories = \{ "\/home\/media" \}/' \
     -e 's/^#\titunes_overrides.*/\titunes_overrides = true/' \
     -e '/^# Local audio output$/,/^\}$/d' \
-    -i /etc/forked-daapd.conf \
+    -i /home/forked-daapd/forked-daapd.conf \
   && mkdir -p /home/forked-daapd/cache/forked-daapd/ \
   && chown -R forked-daapd:users /home/forked-daapd/ \
 
@@ -86,7 +86,9 @@ RUN \
     "while \`/bin/s6-svwait -u -a /var/run/s6/services/dbus /var/run/s6/services/avahi\`; do" \
     "  sleep 5" \
     "  break" \
-    "done && exec /usr/local/sbin/forked-daapd -f" \
+    "done && exec \\" \
+    "  /app/sbin/forked-daapd -f \\" \
+    "  -c /home/forked-daapd/forked-daapd.conf" \
     > /etc/services.d/forked-daapd/run \
   && chmod +x /etc/services.d/forked-daapd/run \
 
@@ -101,6 +103,6 @@ EXPOSE 3689
 # docker build --rm --tag ptb2/forked-daapd .
 # docker run --detach --name forked-daapd --net host \
 #   --publish 3689:3689/tcp \
-#   --volume /volume1/@appstore/forked-daapd/forked-daapd.conf:/etc/forked-daapd.conf \
+#   --volume /volume1/Config/forked-daapd:/home/forked-daapd \
 #   --volume /volume1/Media:/home/media:ro \
 #   ptb2/forked-daapd
